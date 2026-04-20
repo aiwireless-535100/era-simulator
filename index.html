@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ERA Simulator — Edge Resilience Agent</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo-block">
+        <span class="logo-badge">ERA</span>
+        <div>
+          <h1>Edge Resilience Agent Simulator</h1>
+          <p class="subtitle">ICC 2026 · B5G / Wi-Fi 6 Heterogeneous MEC · NYCU</p>
+        </div>
+      </div>
+      <div class="header-tags">
+        <span class="tag">SLA-Driven</span>
+        <span class="tag">Multi-RAT</span>
+        <span class="tag">MEC</span>
+        <span class="tag">Kubernetes</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- TAB NAV -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="serviceability">Serviceability</button>
+    <button class="tab-btn" data-tab="handover">Handover</button>
+    <button class="tab-btn" data-tab="bandwidth">Bandwidth</button>
+    <button class="tab-btn" data-tab="autoscaling">Autoscaling</button>
+    <button class="tab-btn" data-tab="slaloop">SLA Loop</button>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <!-- ===== TAB 1: SERVICEABILITY ===== -->
+    <section id="tab-serviceability" class="tab-panel active">
+      <div class="panel-header">
+        <h2>Composite Serviceability Index</h2>
+        <p>Eq. (5): S<sub>p</sub> = R(T)<sup>α</sup> · A<sup>β</sup> · P<sub>norm</sub><sup>1-α-β</sup></p>
+      </div>
+      <div class="two-col">
+
+        <!-- Controls -->
+        <div class="card controls-card">
+          <h3>Simulation Parameters</h3>
+
+          <div class="control-group">
+            <label>Total Requests (N<sub>total</sub>): <span id="ntotal-val">1800</span></label>
+            <input type="range" id="ntotal" min="100" max="5000" step="100" value="1800" />
+          </div>
+          <div class="control-group">
+            <label>Failure Count (N<sub>fail</sub>): <span id="nfail-val">46</span></label>
+            <input type="range" id="nfail" min="0" max="1000" step="1" value="46" />
+          </div>
+          <div class="control-group">
+            <label>Total Runtime T<sub>tot</sub> (s): <span id="ttot-val">1638</span></label>
+            <input type="range" id="ttot" min="100" max="10000" step="10" value="1638" />
+          </div>
+          <div class="control-group">
+            <label>Avg Downtime per failure T<sub>down</sub> (s): <span id="tdown-val">2.5</span></label>
+            <input type="range" id="tdown" min="0.1" max="10" step="0.1" value="2.5" />
+          </div>
+          <div class="control-group">
+            <label>α (Reliability weight): <span id="alpha-val">0.40</span></label>
+            <input type="range" id="alpha" min="0" max="1" step="0.05" value="0.40" />
+          </div>
+          <div class="control-group">
+            <label>β (Availability weight): <span id="beta-val">0.40</span></label>
+            <input type="range" id="beta" min="0" max="1" step="0.05" value="0.40" />
+          </div>
+
+          <div class="divider"></div>
+          <h3>Performance Targets</h3>
+          <div class="control-group">
+            <label>Throughput Target (Mbps): <span id="tp-target-val">1000</span></label>
+            <input type="range" id="tp-target" min="100" max="2000" step="50" value="1000" />
+          </div>
+          <div class="control-group">
+            <label>Throughput — Normal (Mbps): <span id="tp-normal-val">800</span></label>
+            <input type="range" id="tp-normal" min="100" max="2000" step="50" value="800" />
+          </div>
+          <div class="control-group">
+            <label>Throughput — Degraded (Mbps): <span id="tp-degraded-val">600</span></label>
+            <input type="range" id="tp-degraded" min="50" max="1500" step="50" value="600" />
+          </div>
+          <div class="control-group">
+            <label>Latency — Normal (ms): <span id="lat-normal-val">1.5</span></label>
+            <input type="range" id="lat-normal" min="0.5" max="10" step="0.1" value="1.5" />
+          </div>
+          <div class="control-group">
+            <label>Latency — Degraded (ms): <span id="lat-degraded-val">2.5</span></label>
+            <input type="range" id="lat-degraded" min="0.5" max="20" step="0.1" value="2.5" />
+          </div>
+
+          <button class="btn-primary" id="compare-baseline">Compare vs K8S-HPA Baseline</button>
+        </div>
+
+        <!-- Results -->
+        <div class="results-col">
+          <div class="metrics-grid">
+            <div class="metric-card" id="mc-R">
+              <div class="metric-label">Reliability R</div>
+              <div class="metric-value" id="result-R">97.44%</div>
+              <div class="metric-formula">= (N<sub>total</sub> − N<sub>fail</sub>) / N<sub>total</sub></div>
+            </div>
+            <div class="metric-card" id="mc-A">
+              <div class="metric-label">Availability A</div>
+              <div class="metric-value" id="result-A">93.44%</div>
+              <div class="metric-formula">= MTBF / (MTBF + MTTR)</div>
+            </div>
+            <div class="metric-card" id="mc-Pnorm">
+              <div class="metric-label">Performability P<sub>norm</sub></div>
+              <div class="metric-value" id="result-Pnorm">71.36%</div>
+              <div class="metric-formula">Geometric mean of TP &amp; iLatency</div>
+            </div>
+            <div class="metric-card highlight" id="mc-Sp">
+              <div class="metric-label">Serviceability S<sub>p</sub></div>
+              <div class="metric-value" id="result-Sp">90.03%</div>
+              <div class="metric-formula">R<sup>α</sup> · A<sup>β</sup> · P<sub>norm</sub><sup>1-α-β</sup></div>
+            </div>
+          </div>
+
+          <div class="card chart-card">
+            <h3>ERA vs K8S-HPA Comparison</h3>
+            <canvas id="serviceability-chart"></canvas>
+          </div>
+
+          <div class="card detail-card">
+            <h3>Intermediate Values</h3>
+            <div class="detail-row"><span>MTBF</span><span id="det-mtbf">—</span></div>
+            <div class="detail-row"><span>MTTR</span><span id="det-mttr">—</span></div>
+            <div class="detail-row"><span>T<sub>deg</sub></span><span id="det-tdeg">—</span></div>
+            <div class="detail-row"><span>π<sub>up</sub></span><span id="det-piup">—</span></div>
+            <div class="detail-row"><span>π<sub>deg</sub></span><span id="det-pideg">—</span></div>
+            <div class="detail-row"><span>P<sub>ss,TP</sub></span><span id="det-psstp">—</span></div>
+            <div class="detail-row"><span>P<sub>ss,iLA</sub></span><span id="det-pssila">—</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAB 2: HANDOVER ===== -->
+    <section id="tab-handover" class="tab-panel">
+      <div class="panel-header">
+        <h2>Multi-RAT Seamless Handover</h2>
+        <p>5G-NR ↔ Wi-Fi 6 handover interruption time across three proxy/relay mechanisms</p>
+      </div>
+      <div class="two-col">
+        <div class="card controls-card">
+          <h3>Scenario Controls</h3>
+          <div class="control-group">
+            <label>Handover Direction</label>
+            <div class="radio-group">
+              <label><input type="radio" name="ho-dir" value="5g-wifi" checked /> 5G → Wi-Fi</label>
+              <label><input type="radio" name="ho-dir" value="wifi-5g" /> Wi-Fi → 5G</label>
+            </div>
+          </div>
+          <div class="control-group">
+            <label>RSSI Threshold (dBm): <span id="rssi-val">-60</span></label>
+            <input type="range" id="rssi" min="-90" max="-30" step="5" value="-60" />
+          </div>
+          <div class="control-group">
+            <label>Simulate jitter factor: <span id="jitter-val">1.0×</span></label>
+            <input type="range" id="jitter" min="0.5" max="3.0" step="0.1" value="1.0" />
+          </div>
+          <button class="btn-primary" id="run-handover">Run Handover Simulation</button>
+
+          <div class="divider"></div>
+          <h3>Paper Results (Fig. 4)</h3>
+          <table class="data-table">
+            <thead><tr><th>Mechanism</th><th>5G→WiFi</th><th>WiFi→5G</th><th>KPI ✓</th></tr></thead>
+            <tbody>
+              <tr><td>GStreamer</td><td>21.45 s</td><td>22.28 s</td><td class="fail">✗</td></tr>
+              <tr><td>FFmpeg</td><td>2.15 s</td><td>2.20 s</td><td class="fail">✗</td></tr>
+              <tr class="highlight-row"><td>Socat</td><td>0.07 s</td><td>0.29 s</td><td class="pass">✓</td></tr>
+            </tbody>
+          </table>
+          <p class="note">KPI target: &lt; 1 s</p>
+        </div>
+        <div class="results-col">
+          <div class="card chart-card">
+            <h3>Handover Time Comparison</h3>
+            <canvas id="handover-chart"></canvas>
+          </div>
+          <div class="card chart-card">
+            <h3>Live Handover Animation</h3>
+            <canvas id="handover-anim" width="500" height="160"></canvas>
+            <div class="anim-legend">
+              <span class="dot dot-5g"></span>5G-NR
+              <span class="dot dot-wifi"></span>Wi-Fi 6
+              <span class="dot dot-ue"></span>UE
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAB 3: BANDWIDTH ===== -->
+    <section id="tab-bandwidth" class="tab-panel">
+      <div class="panel-header">
+        <h2>Network Slicing &amp; Dynamic Bandwidth Control</h2>
+        <p>Throughput adaptation under configured rate limits — ERA communication agent (Fig. 5)</p>
+      </div>
+      <div class="two-col">
+        <div class="card controls-card">
+          <h3>Rate Schedule</h3>
+          <p class="note">Edit the bandwidth steps (Mbps) applied over time. Paper sequence: 1000→500→100→600→900</p>
+          <div id="bw-steps-list">
+            <!-- Populated by JS -->
+          </div>
+          <button class="btn-secondary" id="add-bw-step">+ Add Step</button>
+          <div class="divider"></div>
+          <div class="control-group">
+            <label>Adaptation delay (ms): <span id="adapt-delay-val">200</span></label>
+            <input type="range" id="adapt-delay" min="50" max="2000" step="50" value="200" />
+          </div>
+          <div class="control-group">
+            <label>Overshoot factor: <span id="overshoot-val">0.02</span></label>
+            <input type="range" id="overshoot" min="0" max="0.15" step="0.01" value="0.02" />
+          </div>
+          <button class="btn-primary" id="run-bandwidth">Run Simulation</button>
+          <button class="btn-secondary" id="reset-bandwidth">Reset to Paper Values</button>
+        </div>
+        <div class="results-col">
+          <div class="card chart-card tall">
+            <h3>Throughput vs Configured Limit</h3>
+            <canvas id="bandwidth-chart"></canvas>
+          </div>
+          <div class="metrics-grid small">
+            <div class="metric-card">
+              <div class="metric-label">Avg Tracking Error</div>
+              <div class="metric-value" id="bw-tracking-err">—</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Max Overshoot</div>
+              <div class="metric-value" id="bw-max-overshoot">—</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Settling Time</div>
+              <div class="metric-value" id="bw-settling">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAB 4: AUTOSCALING ===== -->
+    <section id="tab-autoscaling" class="tab-panel">
+      <div class="panel-header">
+        <h2>AI-Driven Compute Autoscaling</h2>
+        <p>ERA proactive scaling vs baseline Kubernetes HPA across 100 test groups (Alibaba Cluster Trace 2018)</p>
+      </div>
+      <div class="two-col">
+        <div class="card controls-card">
+          <h3>ERA Scaling Policy (Algorithm 1)</h3>
+          <div class="control-group">
+            <label>Scale-up threshold (%): <span id="scaleup-thresh-val">80</span></label>
+            <input type="range" id="scaleup-thresh" min="50" max="100" step="5" value="80" />
+          </div>
+          <div class="control-group">
+            <label>Scale-down threshold (%): <span id="scaledown-thresh-val">40</span></label>
+            <input type="range" id="scaledown-thresh" min="10" max="60" step="5" value="40" />
+          </div>
+          <div class="control-group">
+            <label>Failure threshold (s): <span id="fail-thresh-val">2.5</span></label>
+            <input type="range" id="fail-thresh" min="1.0" max="5.0" step="0.1" value="2.5" />
+          </div>
+          <div class="control-group">
+            <label>Prediction horizon (s): <span id="pred-horizon-val">12</span></label>
+            <input type="range" id="pred-horizon" min="5" max="30" step="1" value="12" />
+          </div>
+          <div class="control-group">
+            <label>Traffic volatility: <span id="volatility-val">Medium</span></label>
+            <input type="range" id="volatility" min="1" max="3" step="1" value="2" />
+          </div>
+          <button class="btn-primary" id="run-autoscaling">Run Simulation (100 groups)</button>
+
+          <div class="divider"></div>
+          <h3>Paper Results</h3>
+          <table class="data-table">
+            <thead><tr><th>Metric</th><th>K8S-HPA</th><th>ERA</th></tr></thead>
+            <tbody>
+              <tr><td>Failures (&gt;2.5s)</td><td>789</td><td>46</td></tr>
+              <tr><td>Avg Response (s)</td><td>2.10</td><td>0.91</td></tr>
+              <tr><td>Serviceability</td><td>60.72%</td><td>90.03%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="results-col">
+          <div class="card chart-card tall">
+            <h3>Response Time: ERA vs K8S-HPA (100 Groups)</h3>
+            <canvas id="autoscaling-chart"></canvas>
+          </div>
+          <div class="metrics-grid small">
+            <div class="metric-card">
+              <div class="metric-label">ERA Failures</div>
+              <div class="metric-value cyan" id="era-failures">46</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">HPA Failures</div>
+              <div class="metric-value red" id="hpa-failures">789</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">ERA Avg RT (s)</div>
+              <div class="metric-value cyan" id="era-avg-rt">0.91</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">HPA Avg RT (s)</div>
+              <div class="metric-value red" id="hpa-avg-rt">2.10</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAB 5: SLA LOOP ===== -->
+    <section id="tab-slaloop" class="tab-panel">
+      <div class="panel-header">
+        <h2>SLA-Driven Closed-Loop Control</h2>
+        <p>Three-phase ERA resilience loop: Self-Awareness → Self-Learning → Self-Adaptation (Fig. 1)</p>
+      </div>
+      <div class="slaloop-layout">
+        <div class="card sla-diagram-card">
+          <canvas id="slaloop-canvas" width="700" height="400"></canvas>
+          <div class="sla-controls">
+            <button class="btn-primary" id="sla-start">Start Loop</button>
+            <button class="btn-secondary" id="sla-pause">Pause</button>
+            <button class="btn-secondary" id="sla-reset">Reset</button>
+            <div class="control-group inline">
+              <label>Speed: <span id="sla-speed-val">1×</span></label>
+              <input type="range" id="sla-speed" min="0.5" max="4" step="0.5" value="1" />
+            </div>
+          </div>
+        </div>
+        <div class="sla-info-col">
+          <div class="card sla-phase-card" id="sla-phase-awareness">
+            <div class="phase-icon">👁</div>
+            <h3>Self-Awareness</h3>
+            <p>Continuous monitoring of KPIs, delays, errors, and pod status. Detects SLA deviations across the network and compute planes.</p>
+            <div class="phase-metrics">
+              <div class="phase-metric"><span>RSSI</span><span id="sla-rssi">—</span></div>
+              <div class="phase-metric"><span>Pod CPU</span><span id="sla-cpu">—</span></div>
+              <div class="phase-metric"><span>RTT</span><span id="sla-rtt">—</span></div>
+            </div>
+          </div>
+          <div class="card sla-phase-card" id="sla-phase-learning">
+            <div class="phase-icon">🧠</div>
+            <h3>Self-Learning</h3>
+            <p>Autoformer predictor forecasts short-horizon traffic. Downtime risk estimation refines scaling and handover policies online.</p>
+            <div class="phase-metrics">
+              <div class="phase-metric"><span>Predicted load</span><span id="sla-pred-load">—</span></div>
+              <div class="phase-metric"><span>Downtime risk</span><span id="sla-risk">—</span></div>
+              <div class="phase-metric"><span>Policy update</span><span id="sla-policy">—</span></div>
+            </div>
+          </div>
+          <div class="card sla-phase-card" id="sla-phase-adaptation">
+            <div class="phase-icon">⚡</div>
+            <h3>Self-Adaptation</h3>
+            <p>Executes resilience actions: pod scale-up/down, bandwidth reallocation, handover trigger, drift correction.</p>
+            <div class="phase-metrics">
+              <div class="phase-metric"><span>Action</span><span id="sla-action">—</span></div>
+              <div class="phase-metric"><span>Pods active</span><span id="sla-pods">—</span></div>
+              <div class="phase-metric"><span>BW allocated</span><span id="sla-bw">—</span></div>
+            </div>
+          </div>
+          <div class="card sla-log-card">
+            <h3>Event Log</h3>
+            <div id="sla-log"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>ERA Simulator · Based on: "Edge Resilient Agent (ERA): An Edge AI–Driven Framework for B5G and Wi-Fi 6 Heterogeneous MEC Networks" · ICC 2026 · NYCU</p>
+  </footer>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
